@@ -1,0 +1,40 @@
+name: Local CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Stop and remove old container
+      run: |
+        # Stop the container if it's running
+        docker stop nginx-app || true
+        # Remove the container if it exists
+        docker rm nginx-app || true
+        # Remove old images to save space (optional)
+        docker image prune -f
+      
+    - name: Build Docker image
+      run: |
+        docker build -t nginx-app:latest .
+      
+    - name: Run new container
+      run: |
+        docker run -d \
+          --name nginx-app \
+          -p 80:80 \
+          --restart unless-stopped \
+          nginx-app:latest
+      
+    - name: Verify deployment
+      run: |
+        sleep 5
+        curl -f http://localhost || exit 1
+        echo "Deployment successful!"
