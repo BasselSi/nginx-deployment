@@ -24,17 +24,22 @@ jobs:
     - name: Build Docker image
       run: |
         docker build -t nginx-app:latest .
-      
+        
+    - name: Check port 8080 availability
+      run: |
+        echo "Checking what's using port 8080..."
+        lsof -i :8080 || echo "Port 8080 is free"
+        
     - name: Run new container
       run: |
         docker run -d \
           --name nginx-app \
-          -p 80:80 \
+          -p 8080:80 \
           --restart unless-stopped \
           nginx-app:latest
       
     - name: Verify deployment
       run: |
         sleep 5
-        curl -f http://localhost || exit 1
-        echo "Deployment successful!"
+        curl -f http://localhost:8080 || exit 1
+        echo "Deployment successful! App is running on http://localhost:8080"
