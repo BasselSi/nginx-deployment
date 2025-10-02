@@ -2,8 +2,7 @@ name: Local CD Pipeline
 
 on:
   push:
-    branches: [ main, clean-main ]
-  workflow_dispatch:  # Allow manual triggering
+    branches: [ main ]
 
 jobs:
   deploy:
@@ -19,13 +18,22 @@ jobs:
         docker stop nginx-app || true
         # Remove the container if it exists
         docker rm nginx-app || true
+        # Stop any nginx service that might be using port 80
+        sudo systemctl stop nginx || true
+        # Kill any process using port 80
+        sudo fuser -k 80/tcp || true
         # Remove old images to save space (optional)
         docker image prune -f
       
     - name: Build Docker image
       run: |
         docker build -t nginx-app:latest .
-      
+        
+    - name: Check port 80 availability
+      run: |
+        echo "Checking what's using port 80..."
+        sudo lsof -i :80 || echo "Port 80 is free"
+        
     - name: Run new container
       run: |
         docker run -d \
